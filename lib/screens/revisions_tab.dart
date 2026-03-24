@@ -254,7 +254,30 @@ class _FolderTile extends StatelessWidget {
         leading: Icon(isAll ? Icons.all_inbox : Icons.folder, color: isAll ? Colors.indigoAccent : Colors.amber),
         title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
         subtitle: Text("$count Cards", style: const TextStyle(color: Colors.white54, fontSize: 12)),
-        trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+        trailing: isAll ? const Icon(Icons.chevron_right, color: Colors.white38) : IconButton(
+          icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                backgroundColor: const Color(0xFF262626),
+                title: const Text("Delete Bunch?"),
+                content: const Text("This will delete the bunch and all flashcards inside it. This cannot be undone."),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+                  ElevatedButton(
+                    onPressed: () {
+                      Provider.of<AppState>(context, listen: false).deleteItemsByFolder(title);
+                      Navigator.pop(ctx);
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+                    child: const Text("Delete"),
+                  )
+                ],
+              )
+            );
+          },
+        ),
         onTap: onTap,
       ),
     );
@@ -277,6 +300,30 @@ class _ItemTile extends StatelessWidget {
       child: ListTile(
         title: Text(item.title, style: const TextStyle(color: Colors.white, fontSize: 14)),
         subtitle: Text("Level ${item.intervalIndex + 1} • Due: ${item.nextRevisionDate.month}/${item.nextRevisionDate.day}", style: const TextStyle(color: Colors.white38, fontSize: 11)),
+        trailing: IconButton(
+          icon: const Icon(Icons.delete_outline, color: Colors.white38, size: 18),
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                backgroundColor: const Color(0xFF262626),
+                title: const Text("Delete Item?"),
+                content: Text("Are you sure you want to delete '${item.title}'?"),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+                  ElevatedButton(
+                    onPressed: () {
+                      Provider.of<AppState>(context, listen: false).deleteItem(item.id);
+                      Navigator.pop(ctx);
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+                    child: const Text("Delete"),
+                  )
+                ],
+              )
+            );
+          },
+        ),
       ),
     );
   }

@@ -13,9 +13,42 @@ class AppState extends ChangeNotifier {
 
   List<RevisionItem> get items => _items;
   List<int> get intervals => _intervals;
-  int get streak => _streak;
-  int get points => _points;
   bool get isLoading => _isLoading;
+  int get points => _points;
+
+  int get streak {
+    if (_items.isEmpty) return 0;
+    
+    // Get all unique study dates (normalized to year-month-day)
+    final studyDates = _items
+        .expand((item) => item.revisionHistory)
+        .map((d) => DateTime(d.year, d.month, d.day))
+        .toSet()
+        .toList();
+    
+    if (studyDates.isEmpty) return 0;
+    
+    studyDates.sort((a, b) => b.compareTo(a)); // Newest first
+    
+    DateTime today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    DateTime yesterday = today.subtract(const Duration(days: 1));
+    
+    // If they haven't studied today OR yesterday, the streak is broken (0).
+    // Actually, if they haven't studied today yet, yesterday's streak might still be active.
+    if (!studyDates.contains(today) && !studyDates.contains(yesterday)) {
+      return 0;
+    }
+    
+    int currentStreak = 0;
+    DateTime checkDate = studyDates.contains(today) ? today : yesterday;
+    
+    while (studyDates.contains(checkDate)) {
+      currentStreak++;
+      checkDate = checkDate.subtract(const Duration(days: 1));
+    }
+    
+    return currentStreak;
+  }
 
   AppState() {
     _loadData();
@@ -62,6 +95,18 @@ class AppState extends ChangeNotifier {
          _items[index] = updated;
       }
     }
+    notifyListeners();
+    await _storageService.saveItems(_items);
+  }
+
+  Future<void> deleteItem(String id) async {
+    _items.removeWhere((t) => t.id == id);
+    notifyListeners();
+    await _storageService.saveItems(_items);
+  }
+
+  Future<void> deleteItemsByFolder(String folderName) async {
+    _items.removeWhere((t) => t.folder == folderName);
     notifyListeners();
     await _storageService.saveItems(_items);
   }

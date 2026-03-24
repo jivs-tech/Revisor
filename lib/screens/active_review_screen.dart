@@ -48,39 +48,47 @@ class _ActiveReviewScreenState extends State<ActiveReviewScreen> with SingleTick
     _flipCtrl.forward();
   }
 
-  void _nextCard(bool success, AppState state) {
+  void _processOutcome(bool success, AppState state) {
     if (_dueTopics.isEmpty) return;
+    final item = _dueTopics[_currentIndex];
     
-    final currentItem = _dueTopics[_currentIndex];
-    
-    // Only update standard Forgetting Curve if item is actually due or we force update logic.
-    // In infinite tests, we still progress stats.
-    final bool isDue = SpacedRepetition.isDueToday(currentItem.nextRevisionDate);
-    if (isDue || !widget.isInfinityMode) {
-      final result = SpacedRepetition.calculateNextRevision(currentItem.intervalIndex, success, state.intervals);
-      currentItem.nextRevisionDate = result['nextRevisionDate'];
-      currentItem.intervalIndex = result['intervalIndex'];
-    }
-    
-    currentItem.stats.attempts += 1;
     if (success) {
-      currentItem.stats.successfulRecalls += 1;
+      item.stats.successfulRecalls++;
+      item.intervalIndex++;
+      // Track history for the streak calendar
+      item.revisionHistory.add(DateTime.now());
       state.addPoints(widget.type == 'flashcard' ? 10 : 5);
+    } else {
+      item.intervalIndex = 0;
     }
-    state.updateItem(currentItem);
-
+    
+    item.stats.attempts++;
+    final result = SpacedRepetition.calculateNextRevision(item.intervalIndex, success, state.intervals);
+    item.nextRevisionDate = result['nextRevisionDate'] as DateTime;
+    item.intervalIndex = result['intervalIndex'] as int;
+    
+    state.updateItem(item);
+    
     setState(() {
       _isAnswerRevealed = false;
       _currentIndex++;
       
-      // Infinity Loop Logic!
+      // Infinity Loop Logic
       if (widget.isInfinityMode && _currentIndex >= _dueTopics.length) {
         _dueTopics.shuffle();
         _currentIndex = 0;
       }
     });
-    
+
     _flipCtrl.reset();
+  }
+
+  void _nextCard(bool success, AppState state) {
+    if (_dueTopics.isEmpty) return;
+    
+    // In standard mode, we process outcomes. In infinite/bunch mode, we also process if user wants progress.
+    // User requested "allow them to revise as many times as they want" - so we stay in the loop.
+    _processOutcome(success, state);
   }
 
   @override

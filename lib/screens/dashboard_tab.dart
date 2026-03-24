@@ -4,6 +4,7 @@ import '../providers/app_state.dart';
 import '../widgets/star_logo.dart';
 import '../utils/flip_page_route.dart';
 import 'active_review_screen.dart';
+import 'streak_calendar_screen.dart';
 import 'add_tab.dart';
 import '../services/spaced_repetition.dart';
 
@@ -110,7 +111,12 @@ class _DashboardTabState extends State<DashboardTab> with SingleTickerProviderSt
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Expanded(child: _NotionStatCard(label: "Learning Streak", value: "${state.streak} Days 🔥")),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StreakCalendarScreen())),
+                            child: _NotionStatCard(label: "Learning Streak", value: "${state.streak} Days 🔥"),
+                          ),
+                        ),
                         const SizedBox(width: 16),
                         Expanded(child: _NotionStatCard(label: "Total Points", value: "${state.points} Pts ★")),
                       ],

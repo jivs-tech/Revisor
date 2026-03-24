@@ -82,22 +82,39 @@ class SettingsTab extends StatelessWidget {
         body: ListView(
           padding: const EdgeInsets.all(24.0),
           children: [
+            const Text("Appearance", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Theme.of(context).dividerColor),
+              ),
+              child: SwitchListTile(
+                title: const Text("Dark Mode"),
+                subtitle: const Text("Use the minimalist dark aesthetic"),
+                value: state.isDarkMode,
+                activeColor: Colors.indigoAccent,
+                onChanged: (val) => state.toggleTheme(),
+              ),
+            ),
+            const SizedBox(height: 32),
             const Text("Spaced Repetition Intervals", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            const Text("Configure the days between each successful recall level.", style: TextStyle(color: Colors.white54)),
+            Text("Configure the days between each successful recall level.", style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
             const SizedBox(height: 24),
             ...List.generate(state.intervals.length, (index) {
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white10),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 child: ListTile(
                   title: Text("Level ${index + 1}"),
                   subtitle: Text("${state.intervals[index]} Days"),
-                  trailing: const Icon(Icons.edit, color: Colors.white38),
+                  trailing: Icon(Icons.edit, color: Theme.of(context).hintColor),
                   onTap: () => _editInterval(context, state, index),
                 ),
               );

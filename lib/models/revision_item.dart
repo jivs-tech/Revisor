@@ -25,6 +25,7 @@ class RevisionItem {
   DateTime nextRevisionDate;
   int intervalIndex;
   ItemStats stats;
+  List<DateTime> revisionHistory;
 
   RevisionItem({
     required this.id,
@@ -36,7 +37,9 @@ class RevisionItem {
     required this.nextRevisionDate,
     this.intervalIndex = 0,
     ItemStats? stats,
-  }) : stats = stats ?? ItemStats();
+    List<DateTime>? revisionHistory,
+  }) : stats = stats ?? ItemStats(),
+       revisionHistory = revisionHistory ?? [];
 
   Map<String, dynamic> toMap() => {
     'id': id,
@@ -48,6 +51,7 @@ class RevisionItem {
     'nextRevisionDate': nextRevisionDate.toIso8601String(),
     'intervalIndex': intervalIndex,
     'stats': stats.toMap(),
+    'revisionHistory': revisionHistory.map((d) => d.toIso8601String()).toList(),
   };
 
   factory RevisionItem.fromMap(Map<String, dynamic> map) => RevisionItem(
@@ -60,5 +64,6 @@ class RevisionItem {
     nextRevisionDate: DateTime.parse(map['nextRevisionDate']),
     intervalIndex: map['intervalIndex'] ?? 0,
     stats: ItemStats.fromMap(map['stats'] ?? {}),
+    revisionHistory: (map['revisionHistory'] as List?)?.map((d) => DateTime.parse(d)).toList() ?? [],
   );
 }
