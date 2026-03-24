@@ -10,11 +10,13 @@ class AppState extends ChangeNotifier {
   int _streak = 0;
   int _points = 0;
   bool _isLoading = true;
+  bool _isDarkMode = true;
 
   List<RevisionItem> get items => _items;
   List<int> get intervals => _intervals;
   bool get isLoading => _isLoading;
   int get points => _points;
+  bool get isDarkMode => _isDarkMode;
 
   int get streak {
     if (_items.isEmpty) return 0;
@@ -59,12 +61,19 @@ class AppState extends ChangeNotifier {
     final stats = await _storageService.loadStats();
     _streak = stats['streak'] ?? 0;
     _points = stats['points'] ?? 0;
+    _isDarkMode = await _storageService.loadTheme();
     
     List<int> loadedIntervals = (stats['intervals'] as String?)?.split(',').where((e) => e.isNotEmpty).map((e) => int.parse(e)).toList() ?? [1, 3, 7, 14, 30, 60, 90];
     _intervals = loadedIntervals;
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<void> toggleTheme() async {
+    _isDarkMode = !_isDarkMode;
+    notifyListeners();
+    await _storageService.saveTheme(_isDarkMode);
   }
 
   Future<void> updateIntervals(List<int> newIntervals) async {

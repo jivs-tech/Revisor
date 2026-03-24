@@ -26,7 +26,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Theme.of(context).colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), border: Border.all(color: Theme.of(context).dividerColor)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Theme.of(context).dividerColor)),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
