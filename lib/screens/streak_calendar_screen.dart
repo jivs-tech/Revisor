@@ -17,8 +17,8 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
   void _showStudiedItems(BuildContext context, DateTime date, List<RevisionItem> items) {
     // Filter items studied on this exact day (ignoring time)
     final studied = items.where((item) {
-      return item.revisionHistory.any((d) => 
-        d.year == date.year && d.month == date.month && d.day == date.day
+      return item.revisionHistory.any((h) => 
+        h.date.year == date.year && h.date.month == date.month && h.date.day == date.day
       );
     }).toList();
 
@@ -148,7 +148,7 @@ class _StreakCalendarScreenState extends State<StreakCalendarScreen> {
                     final isToday = date.year == DateTime.now().year && date.month == DateTime.now().month && date.day == DateTime.now().day;
                     
                     final hasStudied = state.items.any((item) => 
-                      item.revisionHistory.any((h) => h.year == date.year && h.month == date.month && h.day == date.day)
+                      item.revisionHistory.any((h) => h.date.year == date.year && h.date.month == date.month && h.date.day == date.day)
                     );
 
                     return GestureDetector(

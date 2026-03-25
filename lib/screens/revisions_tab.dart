@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../models/revision_item.dart';
 import 'active_review_screen.dart';
+import 'topic_details_screen.dart';
 
 class RevisionsTab extends StatefulWidget {
   const RevisionsTab({super.key});
@@ -151,19 +152,47 @@ class _RevisionsTabState extends State<RevisionsTab> {
             ],
           ),
           body: _selectedFolder == null 
-             ? _buildRootView(folders, flashcards, topics)
+             ? _buildRootView(state, folders, flashcards, topics)
              : _buildFolderView(state, _selectedFolder!, flashcards.where((e) => e.folder == _selectedFolder).toList()),
         );
       },
     );
   }
 
-  Widget _buildRootView(List<String> folders, List<RevisionItem> allCards, List<RevisionItem> allTopics) {
+  Widget _buildRootView(AppState state, List<String> folders, List<RevisionItem> allCards, List<RevisionItem> allTopics) {
     final uncategorizedCards = allCards.where((c) => c.folder == null || c.folder!.isEmpty).toList();
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       children: [
+        const Text("Smart Bunches", style: TextStyle(color: Colors.indigoAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _SmartBunchCard(
+                title: "Needs Revision",
+                itemCount: state.needsRevisionItems.length,
+                color: Colors.redAccent,
+                onTap: () => setState(() => _selectedFolder = "SMART_NEEDS_REVISION"),
+              ),
+              _SmartBunchCard(
+                title: "Keep Going",
+                itemCount: state.keepGoingItems.length,
+                color: Colors.orangeAccent,
+                onTap: () => setState(() => _selectedFolder = "SMART_KEEP_GOING"),
+              ),
+              _SmartBunchCard(
+                title: "Already Mastered",
+                itemCount: state.masteredItems.length,
+                color: Colors.greenAccent,
+                onTap: () => setState(() => _selectedFolder = "SMART_MASTERED"),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 32),
         const Text("Flashcard Bunches", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.w500)),
         const SizedBox(height: 16),
         _FolderTile(
@@ -195,7 +224,28 @@ class _RevisionsTabState extends State<RevisionsTab> {
 
   Widget _buildFolderView(AppState state, String folderName, List<RevisionItem> items) {
     final isAll = folderName == "ALL_FLASHCARDS";
-    final displayItems = isAll ? state.items.where((e) => e.type == 'flashcard').toList() : items;
+    final isSmart = folderName.startsWith("SMART_");
+    
+    List<RevisionItem> displayItems;
+    String titleText = folderName;
+    
+    if (isAll) {
+      displayItems = state.items.where((e) => e.type == 'flashcard').toList();
+      titleText = "All Flashcards";
+    } else if (isSmart) {
+      if (folderName == "SMART_NEEDS_REVISION") {
+        displayItems = state.needsRevisionItems;
+        titleText = "Needs Revision";
+      } else if (folderName == "SMART_KEEP_GOING") {
+        displayItems = state.keepGoingItems;
+        titleText = "Keep Going";
+      } else {
+        displayItems = state.masteredItems;
+        titleText = "Already Mastered";
+      }
+    } else {
+      displayItems = items;
+    }
 
     return Column(
       children: [
@@ -205,19 +255,21 @@ class _RevisionsTabState extends State<RevisionsTab> {
             children: [
               IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => setState(() => _selectedFolder = null)),
               const SizedBox(width: 8),
-              Expanded(child: Text(isAll ? "All Flashcards" : folderName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.play_arrow, size: 16),
-                label: const Text("Revise Bunch"),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.indigoAccent, foregroundColor: Colors.white),
-                onPressed: () {
-                   Navigator.push(context, MaterialPageRoute(builder: (_) => ActiveReviewScreen(
-                      type: 'flashcard', 
-                      folderFilter: isAll ? null : folderName,
-                      isInfinityMode: false,
-                   )));
-                }
-              )
+              Expanded(child: Text(titleText, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
+              if (!isSmart || displayItems.isNotEmpty)
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.play_arrow, size: 16),
+                  label: const Text("Revise Bunch"),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.indigoAccent, foregroundColor: Colors.white),
+                  onPressed: () {
+                     Navigator.push(context, MaterialPageRoute(builder: (_) => ActiveReviewScreen(
+                        type: 'flashcard', 
+                        folderFilter: isAll || isSmart ? null : folderName,
+                        smartFilter: isSmart ? folderName.replaceFirst("SMART_", "") : null,
+                        isInfinityMode: false,
+                     )));
+                  }
+                )
             ],
           ),
         ),
@@ -246,9 +298,9 @@ class _FolderTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isAll ? const Color(0xFF3730A3).withValues(alpha: 0.3) : const Color(0xFF262626),
+        color: isAll ? const Color(0xFF3730A3).withOpacity(0.3) : const Color(0xFF262626),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isAll ? Colors.indigoAccent.withValues(alpha: 0.5) : Colors.white10),
+        border: Border.all(color: isAll ? Colors.indigoAccent.withOpacity(0.5) : Colors.white10),
       ),
       child: ListTile(
         leading: Icon(isAll ? Icons.all_inbox : Icons.folder, color: isAll ? Colors.indigoAccent : Colors.amber),
@@ -323,6 +375,55 @@ class _ItemTile extends StatelessWidget {
               )
             );
           },
+        ),
+        onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => TopicDetailsScreen(item: item)));
+        },
+      ),
+    );
+  }
+}
+
+class _SmartBunchCard extends StatelessWidget {
+  final String title;
+  final int itemCount;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _SmartBunchCard({required this.title, required this.itemCount, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 150, // Slightly wider for longer text
+        height: 110, // Fixed height for uniformity
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Distribute space
+          children: [
+            Icon(Icons.auto_awesome, color: color, size: 20),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, 
+                  maxLines: 1, 
+                  overflow: TextOverflow.ellipsis, // Prevent long text from expanding card
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 4),
+                Text("$itemCount Items", style: TextStyle(color: color.withOpacity(0.8), fontSize: 11)),
+              ],
+            ),
+          ],
         ),
       ),
     );

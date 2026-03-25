@@ -9,12 +9,14 @@ class ActiveReviewScreen extends StatefulWidget {
   final String type; // 'flashcard' or 'topic'
   final bool isInfinityMode;
   final String? folderFilter;
+  final String? smartFilter; // 'NEEDS_REVISION', 'KEEP_GOING', 'MASTERED'
 
   const ActiveReviewScreen({
     super.key, 
     required this.type, 
     this.isInfinityMode = false,
     this.folderFilter,
+    this.smartFilter,
   });
 
   @override
@@ -55,11 +57,13 @@ class _ActiveReviewScreenState extends State<ActiveReviewScreen> with SingleTick
     if (success) {
       item.stats.successfulRecalls++;
       item.intervalIndex++;
-      // Track history for the streak calendar
-      item.revisionHistory.add(DateTime.now());
+      // Track history for the streak calendar & graph (Success)
+      item.revisionHistory.add(RevisionHistoryEntry(date: DateTime.now(), isSuccess: true));
       state.addPoints(widget.type == 'flashcard' ? 10 : 5);
     } else {
       item.intervalIndex = 0;
+      // Track history for the graph (Failure/Forgot)
+      item.revisionHistory.add(RevisionHistoryEntry(date: DateTime.now(), isSuccess: false));
     }
     
     item.stats.attempts++;
@@ -98,14 +102,25 @@ class _ActiveReviewScreenState extends State<ActiveReviewScreen> with SingleTick
         // Initial population
         if (_currentIndex == 0 && _dueTopics.isEmpty) {
           var pool = state.items.where((t) => t.type == widget.type);
-          if (widget.folderFilter != null) {
-            pool = pool.where((t) => t.folder == widget.folderFilter);
-          }
           
-          if (widget.isInfinityMode || widget.folderFilter != null) {
-            _dueTopics = pool.toList()..shuffle();
+          if (widget.smartFilter != null) {
+            if (widget.smartFilter == 'NEEDS_REVISION') {
+              _dueTopics = state.needsRevisionItems..shuffle();
+            } else if (widget.smartFilter == 'KEEP_GOING') {
+              _dueTopics = state.keepGoingItems..shuffle();
+            } else if (widget.smartFilter == 'MASTERED') {
+              _dueTopics = state.masteredItems..shuffle();
+            }
           } else {
-            _dueTopics = pool.where((t) => SpacedRepetition.isDueToday(t.nextRevisionDate)).toList();
+            if (widget.folderFilter != null) {
+              pool = pool.where((t) => t.folder == widget.folderFilter);
+            }
+            
+            if (widget.isInfinityMode || widget.folderFilter != null) {
+              _dueTopics = pool.toList()..shuffle();
+            } else {
+              _dueTopics = pool.where((t) => SpacedRepetition.isDueToday(t.nextRevisionDate)).toList();
+            }
           }
         }
 

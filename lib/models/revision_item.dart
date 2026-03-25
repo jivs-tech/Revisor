@@ -15,6 +15,25 @@ class ItemStats {
   );
 }
 
+class RevisionHistoryEntry {
+  final DateTime date;
+  final bool isSuccess;
+
+  RevisionHistoryEntry({required this.date, required this.isSuccess});
+
+  Map<String, dynamic> toMap() => {
+    'date': date.toIso8601String(),
+    'isSuccess': isSuccess,
+  };
+
+  factory RevisionHistoryEntry.fromMap(Map<String, dynamic> map) {
+    return RevisionHistoryEntry(
+      date: DateTime.parse(map['date']),
+      isSuccess: map['isSuccess'] ?? true,
+    );
+  }
+}
+
 class RevisionItem {
   String id;
   String title;
@@ -25,7 +44,7 @@ class RevisionItem {
   DateTime nextRevisionDate;
   int intervalIndex;
   ItemStats stats;
-  List<DateTime> revisionHistory;
+  List<RevisionHistoryEntry> revisionHistory;
 
   RevisionItem({
     required this.id,
@@ -37,7 +56,7 @@ class RevisionItem {
     required this.nextRevisionDate,
     this.intervalIndex = 0,
     ItemStats? stats,
-    List<DateTime>? revisionHistory,
+    List<RevisionHistoryEntry>? revisionHistory,
   }) : stats = stats ?? ItemStats(),
        revisionHistory = revisionHistory ?? [];
 
@@ -51,7 +70,7 @@ class RevisionItem {
     'nextRevisionDate': nextRevisionDate.toIso8601String(),
     'intervalIndex': intervalIndex,
     'stats': stats.toMap(),
-    'revisionHistory': revisionHistory.map((d) => d.toIso8601String()).toList(),
+    'revisionHistory': revisionHistory.map((e) => e.toMap()).toList(),
   };
 
   factory RevisionItem.fromMap(Map<String, dynamic> map) => RevisionItem(
@@ -64,6 +83,10 @@ class RevisionItem {
     nextRevisionDate: DateTime.parse(map['nextRevisionDate']),
     intervalIndex: map['intervalIndex'] ?? 0,
     stats: ItemStats.fromMap(map['stats'] ?? {}),
-    revisionHistory: (map['revisionHistory'] as List?)?.map((d) => DateTime.parse(d)).toList() ?? [],
+    revisionHistory: (map['revisionHistory'] as List?)?.map((e) {
+      if (e is Map<String, dynamic>) return RevisionHistoryEntry.fromMap(e);
+      // Legacy support for plain strings
+      return RevisionHistoryEntry(date: DateTime.parse(e.toString()), isSuccess: true);
+    }).toList() ?? [],
   );
 }

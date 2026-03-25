@@ -6,6 +6,19 @@ class StorageService {
   static const String itemsKey = 'smart_revision_items_v2';
   static const String statsKey = 'smart_revision_stats_v2';
   static const String themeKey = 'smart_revision_theme_v2';
+  static const String remindersKey = 'smart_revision_reminders_v2';
+
+  Future<void> saveReminders(List<dynamic> reminders) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = reminders.map((r) => jsonEncode(r.toMap())).toList();
+    await prefs.setStringList(remindersKey, jsonList);
+  }
+
+  Future<List<Map<String, dynamic>>> loadReminders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonList = prefs.getStringList(remindersKey) ?? [];
+    return jsonList.map((jsonStr) => jsonDecode(jsonStr) as Map<String, dynamic>).toList();
+  }
 
   Future<void> saveItems(List<RevisionItem> items) async {
     final prefs = await SharedPreferences.getInstance();

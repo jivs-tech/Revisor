@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../models/revision_item.dart';
+import '../widgets/forgetting_curve_graph.dart';
 
 enum StatFilter { defaultView, lowestAccuracy, lowestSpan }
 
@@ -14,6 +15,7 @@ class StatsTab extends StatefulWidget {
 
 class _StatsTabState extends State<StatsTab> {
   StatFilter _filter = StatFilter.defaultView;
+  String _selectedBunch = "All Flashcards";
 
   List<RevisionItem> _applyFilter(List<RevisionItem> items) {
     List<RevisionItem> sorted = List.from(items);
@@ -29,12 +31,22 @@ class _StatsTabState extends State<StatsTab> {
     return sorted;
   }
 
+  List<RevisionItem> _getBunchItems(AppState state, String bunch) {
+    if (bunch == "All Flashcards") return state.items.where((i) => i.type == 'flashcard').toList();
+    if (bunch == "Needs Revision") return state.needsRevisionItems;
+    if (bunch == "Keep Going") return state.keepGoingItems;
+    if (bunch == "Already Mastered") return state.masteredItems;
+    return state.items.where((i) => i.folder == bunch).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AppState>(
       builder: (context, state, child) {
         final cards = _applyFilter(state.items.where((i) => i.type == 'flashcard').toList());
         final topics = _applyFilter(state.items.where((i) => i.type == 'topic').toList());
+        final bunches = state.getUniqueBunches();
+        final selectedBunchItems = _getBunchItems(state, _selectedBunch);
 
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -49,7 +61,7 @@ class _StatsTabState extends State<StatsTab> {
                     children: [
                       const Text(
                         "Insights",
-                        style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w600, letterSpacing: -0.5),
+                        style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: -1.0),
                       ),
                       PopupMenuButton<StatFilter>(
                         icon: const Icon(Icons.tune, color: Colors.white70),
@@ -66,11 +78,22 @@ class _StatsTabState extends State<StatsTab> {
                   ),
                   const SizedBox(height: 32),
 
+                  // Integrated Aggregate Graph
+                  const Text("Bunch Retention Curve", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  _buildBunchSelector(bunches),
+                  const SizedBox(height: 16),
+                  ForgettingCurveGraph(
+                    items: selectedBunchItems,
+                    isDarkMode: true,
+                  ),
+                  const SizedBox(height: 40),
+
                   if (_filter != StatFilter.defaultView) 
                     Container(
                       margin: const EdgeInsets.only(bottom: 24),
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.amber.withValues(alpha: 0.3))),
+                      decoration: BoxDecoration(color: Colors.amber.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.amber.withOpacity(0.3))),
                       child: Row(
                         children: [
                           const Icon(Icons.filter_alt, size: 16, color: Colors.amber),
@@ -102,24 +125,56 @@ class _StatsTabState extends State<StatsTab> {
     );
   }
 
+  Widget _buildBunchSelector(List<String> bunches) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: bunches.map((b) {
+          final isSelected = b == _selectedBunch;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ChoiceChip(
+              label: Text(b),
+              selected: isSelected,
+              onSelected: (val) {
+                if (val) setState(() => _selectedBunch = b);
+              },
+              backgroundColor: const Color(0xFF262626),
+              selectedColor: Colors.indigoAccent,
+              labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.white54, fontSize: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   Widget _buildNotionTable(List<RevisionItem> items) {
     if (items.isEmpty) return const Text("No items available.", style: TextStyle(color: Colors.white38));
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF202020),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Theme(
-          data: ThemeData.dark().copyWith(
-            dividerColor: Colors.white10,
-          ),
-          child: DataTable(
-            headingTextStyle: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w500),
-            dataTextStyle: const TextStyle(color: Colors.white, fontSize: 13),
-            columns: const [
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Theme(
+            data: ThemeData.dark().copyWith(
+              dividerColor: Colors.white.withOpacity(0.05),
+            ),
+            child: DataTable(
+              headingRowColor: MaterialStateProperty.all(Colors.white.withOpacity(0.02)),
+              headingTextStyle: const TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+              dataTextStyle: const TextStyle(color: Colors.white, fontSize: 13),
+              columnSpacing: 40,
+              columns: const [
               DataColumn(label: Text('Item Name')),
               DataColumn(label: Text('Current Span')),
               DataColumn(label: Text('Accuracy')),
@@ -151,6 +206,7 @@ class _StatsTabState extends State<StatsTab> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
